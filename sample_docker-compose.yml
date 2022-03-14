@@ -1,0 +1,316 @@
+networks:
+  evolute-network:
+    driver: bridge
+services:
+  celery-board:
+    command: 'bash -c "./wait-for -t 400 evolute-board:8002 -- celery -A qaboard worker
+      -l info --concurrency=3"
+
+      '
+    container_name: board_celery
+    depends_on:
+    - evolute-board
+    environment:
+      ES_HOST: evolute_es01
+      ES_PORT: 9200
+      MYSQL_HOST: db
+      MYSQL_PASSWORD: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: mysql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SUFFIX: SUFFIX
+    image: ncr-partner.nie.netease.com/evolute/evolute-board:latest
+    networks:
+    - evolute-network
+    volumes:
+    - ./docker/qaboard/volume/logs:/usr/share/qaboard/logs
+    - ./docker/evolute-studio/volume/media:/usr/share/qaboard/media
+  celery-board-beat:
+    command: 'bash -c "./wait-for -t 400 evolute-board:8002 -- celery -A qaboard beat
+      -l info -s django"
+
+      '
+    container_name: board_celery_beat
+    depends_on:
+    - evolute-board
+    environment:
+      ES_HOST: evolute_es01
+      ES_PORT: 9200
+      MYSQL_HOST: db
+      MYSQL_PASSWORD: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: mysql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SUFFIX: SUFFIX
+    image: ncr-partner.nie.netease.com/evolute/evolute-board:latest
+    networks:
+    - evolute-network
+    volumes:
+    - ./docker/qaboard/volume/logs:/usr/share/qaboard/logs
+    - ./docker/evolute-studio/volume/media:/usr/share/qaboard/media
+  celery-wiki:
+    command: 'bash -c "./wait-for -t 400 evolute-wiki:8003 -- celery -A qawiki worker
+      -l info --concurrency=3"
+
+      '
+    container_name: wiki_celery
+    depends_on:
+    - evolute-wiki
+    environment:
+      ES_HOST: evolute_es01
+      ES_PORT: 9200
+      MYSQL_HOST: db
+      MYSQL_PASSWORD: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: mysql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SUFFIX: SUFFIX
+    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:latest
+    networks:
+    - evolute-network
+    volumes:
+    - ./docker/qawiki/volume/logs:/usr/share/qawiki/logs
+    - ./docker/evolute-studio/volume/media:/usr/share/qawiki/media
+  celery-wiki-beat:
+    command: 'bash -c "./wait-for -t 400 evolute-wiki:8003 -- celery -A qawiki beat
+      -l info -S django"
+
+      '
+    container_name: wiki_celery_beat
+    depends_on:
+    - evolute-wiki
+    environment:
+      MYSQL_HOST: db
+      MYSQL_PASSWORD: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: mysql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:latest
+    networks:
+    - evolute-network
+    volumes:
+    - ./docker/qawiki/volume/logs:/usr/share/qawiki/logs
+    - ./docker/evolute-studio/volume/media:/usr/share/qawiki/media
+  db:
+    command: mysqld --user=mysql --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+      --init-connect='SET NAMES utf8mb4;' --innodb-flush-log-at-trx-commit=0
+    container_name: db
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'true'
+      MYSQL_PASSWORD: mysql
+      MYSQL_USER: mysql
+    healthcheck:
+      interval: 6s
+      retries: 10
+      test:
+      - CMD
+      - mysqladmin
+      - ping
+      - -h
+      - localhost
+      - -uroot
+      timeout: 5s
+    image: mysql:5.7
+    networks:
+    - evolute-network
+    ports:
+    - 4399:3306
+    tty: true
+    volumes:
+    - ./create_db:/docker-entrypoint-initdb.d
+    - ./docker/mysql/volume:/var/lib/mysql
+    - ./my.cnf:/etc/mysql/my.cnf
+  evolute_es01:
+    container_name: evolute_es01
+    environment:
+    - discovery.type=single-node
+    - bootstrap.memory_lock=true
+    - ES_JAVA_OPTS=-Xms2g -Xmx2g
+    image: ncr-partner.nie.netease.com/evolute/elasticsearch-jieba:0.1
+    networks:
+    - evolute-network
+    ports:
+    - 9203:9200
+    ulimits:
+      memlock:
+        hard: -1
+        soft: -1
+    volumes:
+    - data01:/usr/share/elasticsearch/data
+    - ./jvm.options.d:/usr/share/elasticsearch/config/jvm.options.d
+  evolute:
+    container_name: evolute
+    command: 'bash -c "./wait-for db:3306 -t 500 -- python manage.py migrate --database managements
+      && python manage.py migrate && python manage.py runserver 0:8000"
+
+      '
+    depends_on:
+    - db
+    environment:
+      MYSQL_HOST: db
+      MYSQL_PASSWORD: mysql
+      MYSQL_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ''
+      MYSQL_USER: mysql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOGIN_URL: LOGIN_URL
+      SUFFIX: SUFFIX
+      WS_DOMAIN: WS_DOMAIN
+    image: ncr-partner.nie.netease.com/evolute/evolute-deploy:latest
+    networks:
+    - evolute-network
+    volumes:
+      - ./docker/evertest/volume/logs:/usr/share/evertest/logs
+    ports:
+    - 14395:8000
+  evolute-board:
+    command: 'bash -c "./wait-for evolute-studio:8001 -t 500 -- ./init_board.sh"
+
+      '
+    container_name: evolute-board
+    depends_on:
+    - evolute-studio
+    environment:
+      SERVER_WORKER: '3'
+      ES_HOST: evolute_es01
+      ES_PORT: 9200
+      MYSQL_HOST: db
+      MYSQL_PASSWORD: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: mysql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SUFFIX: SUFFIX
+    image: ncr-partner.nie.netease.com/evolute/evolute-board:latest
+    networks:
+    - evolute-network
+    ports:
+    - 14398:8002
+    tty: true
+    volumes:
+    - ./docker/qaboard/volume/logs:/usr/share/qaboard/logs
+    - ./docker/evolute-studio/volume/media:/usr/share/qaboard/media
+  evolute-studio:
+    command: 'bash -c "./wait-for evolute:8000 -t 500 -- ./init_studio.sh"
+
+      '
+    container_name: evolute-studio
+    depends_on:
+    - evolute
+    environment:
+      ES_HOST: evolute_es01
+      ES_PORT: 9200
+      MYSQL_HOST: db
+      MYSQL_PASSWORD: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: mysql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SUFFIX: SUFFIX
+    image: ncr-partner.nie.netease.com/evolute/evolute-studio:latest
+    networks:
+    - evolute-network
+    ports:
+    - 14396:8001
+    tty: true
+    volumes:
+    - ./docker/studio/volume/logs:/usr/share/qastudio/logs
+    - ./docker/evolute-studio/volume/media:/usr/share/qastudio/media
+  evolute-wiki:
+    command: 'bash -c "./wait-for evolute-studio:8001 -t 500 -- ./init_wiki.sh"
+
+      '
+    container_name: evolute-wiki
+    depends_on:
+    - evolute-board
+    environment:
+      SERVER_WORKER: '3'
+      ES_HOST: evolute_es01
+      ES_PORT: 9200
+      MYSQL_HOST: db
+      MYSQL_PASSWORD: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: mysql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SUFFIX: SUFFIX
+      WS_DOMAIN: WS_DOMAIN
+    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:latest
+    networks:
+    - evolute-network
+    ports:
+    - 14399:8003
+    tty: true
+    volumes:
+    - ./docker/qawiki/volume/logs:/usr/share/qawiki/logs
+    - ./docker/evolute-studio/volume/media:/usr/share/qawiki/media
+  evolute-wiki-ws:
+    command: 'bash -c "./wait-for evolute-wiki:8003 -t 500 -- ./init_asgi_wiki.sh && python refresh_redisstorage.py"
+
+      '
+    container_name: evolute-wiki-ws
+    depends_on:
+    - evolute-wiki
+    environment:
+      ES_HOST: evolute_es01
+      ES_PORT: 9200
+      MYSQL_HOST: db
+      MYSQL_PASSWORD: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: mysql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SUFFIX: SUFFIX
+      WS_DOMAIN: WS_DOMAIN
+    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:latest
+    networks:
+    - evolute-network
+    tty: true
+    ports:
+      - 14394:8000
+    volumes:
+    - ./docker/qawiki/volume/logs:/usr/share/qawiki/logs
+    - ./docker/evolute-studio/volume/media:/usr/share/qawiki/media
+  redis:
+    command: redis-server
+    image: redis:latest
+    networks:
+    - evolute-network
+  canal_server:
+    working_dir: /home/canal-deployer/
+    container_name: canal_server
+    command: bash -c "./wait-for -t 400 evolute-wiki-ws:8000 -- ./bin/restart.sh && sleep 5s && python3 /home/canal-deployer/bin/canal-python.py"
+    image: ncr-partner.nie.netease.com/evolute/canal:centos7.2
+    networks:
+      - evolute-network
+    environment:
+      ES_HOST: evolute_es01
+      ES_PORT: 9200
+      MYSQL_HOST: db
+      MYSQL_PASSWORD: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: mysql
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - 11111:11111
+    volumes:
+      - ./docker/canal-deployer/logs:/home/canal-deployer/logs
+      - ./instance.properties:/home/canal-deployer/conf/example/instance.properties
+    depends_on:
+      - db
+    stdin_open: true
+    tty: true
+version: '2.1'
+volumes:
+  data01:
+    driver: local
+  data02:
+    driver: local
+  data03:
+    driver: local
