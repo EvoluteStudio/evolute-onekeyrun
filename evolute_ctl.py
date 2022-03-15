@@ -3,7 +3,7 @@ import argparse
 import os
 import os.path
 import shutil
-
+from evolute_params import check_system
 parser = argparse.ArgumentParser(description='customize system args')
 parser.add_argument('--run', '-r', help='run system', const=True, nargs='?')
 parser.add_argument('--update', '-u', help='update system', const=True, nargs='?')
@@ -55,7 +55,7 @@ def github_download():
         print(f'下载更新包失败>(⊙﹏⊙)<，可以尝试手动下载tar.gz压缩包后安装更新: {DOWNLOAD_URL}')
         return False
     os.system(f"tar zxvf {new_version}.tar.gz")
-    new_version_dir = f'test_version-{new_version[1:]}'
+    new_version_dir = f'evolute-onekeyrun-{new_version}'
     cwd = os.getcwd()
     if not os.path.exists(new_version_dir):
         print(f'找不到文件夹: {new_version_dir}')
@@ -72,6 +72,8 @@ def github_download():
             shutil.move(os.path.join(cwd, root, dir), os.path.join(cwd, dir))
     if os.path.exists(f'{new_version}.tar.gz'):
         os.remove(f'{new_version}.tar.gz')
+    if os.path.exists(f'evolute-onekeyrun-{new_version}.tar.gz'):
+        shutil.rmtree(f'evolute-onekeyrun-{new_version}.tar.gz')
     return new_version
 
 
@@ -155,8 +157,7 @@ if __name__ == '__main__':
     if args.update:
         update_system()
     if args.restart:
-        from evolute_params import restart_system, check_system
-
+        from evolute_params import restart_system
         restart_system()
     if args.kill:
         kill_system()

@@ -226,6 +226,7 @@ def restart_system(update=False):
             pass
         else:
             flag = False
+    print('服务已启动...')
 
 def check_system():
     install_check = False
@@ -241,10 +242,16 @@ def run_install_scripts():
 
 
 def run_update_scripts():
+    print('start running scripts...')
+    print("docker exec -it evolute /bin/bash -c './run_scripts.sh'")
     os.system("docker exec -it evolute /bin/bash -c './run_scripts.sh'")
+    print("docker exec -it evolute-studio /bin/bash -c './run_scripts.sh'")
     os.system("docker exec -it evolute-studio /bin/bash -c './run_scripts.sh'")
+    print("docker exec -it evolute-board /bin/bash -c './run_scripts.sh'")
     os.system("docker exec -it evolute-board /bin/bash -c './run_scripts.sh'")
+    print("docker exec -it evolute-wiki /bin/bash -c './run_scripts.sh'")
     os.system("docker exec -it evolute-wiki /bin/bash -c './run_scripts.sh'")
+    print('scripts finished...')
 
 
 
