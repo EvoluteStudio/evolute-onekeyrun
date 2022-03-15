@@ -145,7 +145,7 @@ services:
   evolute:
     container_name: evolute
     command: 'bash -c "./wait-for db:3306 -t 500 -- python manage.py migrate --database managements
-      && python manage.py migrate && python manage.py runserver 0:8000"
+      && python manage.py migrate && python manage.py runserver 0:8000 && ./run_scripts.sh"
 
       '
     depends_on:
@@ -161,6 +161,7 @@ services:
       LOGIN_URL: LOGIN_URL
       SUFFIX: SUFFIX
       WS_DOMAIN: WS_DOMAIN
+      LOCAL_VERSION: LOCAL_VERSION
     image: ncr-partner.nie.netease.com/evolute/evolute-deploy:latest
     networks:
     - evolute-network
@@ -169,7 +170,7 @@ services:
     ports:
     - 14395:8000
   evolute-board:
-    command: 'bash -c "./wait-for evolute-studio:8001 -t 500 -- ./init_board.sh"
+    command: 'bash -c "./wait-for evolute-studio:8001 -t 500 -- ./init_board.sh && ./run_scripts.sh"
 
       '
     container_name: evolute-board
@@ -186,6 +187,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SUFFIX: SUFFIX
+      LOCAL_VERSION: LOCAL_VERSION
     image: ncr-partner.nie.netease.com/evolute/evolute-board:latest
     networks:
     - evolute-network
@@ -196,7 +198,7 @@ services:
     - ./docker/qaboard/volume/logs:/usr/share/qaboard/logs
     - ./docker/evolute-studio/volume/media:/usr/share/qaboard/media
   evolute-studio:
-    command: 'bash -c "./wait-for evolute:8000 -t 500 -- ./init_studio.sh"
+    command: 'bash -c "./wait-for evolute:8000 -t 500 -- ./init_studio.sh && ./run_scripts.sh"
 
       '
     container_name: evolute-studio
@@ -212,6 +214,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SUFFIX: SUFFIX
+      LOCAL_VERSION: LOCAL_VERSION
     image: ncr-partner.nie.netease.com/evolute/evolute-studio:latest
     networks:
     - evolute-network
@@ -222,7 +225,7 @@ services:
     - ./docker/studio/volume/logs:/usr/share/qastudio/logs
     - ./docker/evolute-studio/volume/media:/usr/share/qastudio/media
   evolute-wiki:
-    command: 'bash -c "./wait-for evolute-studio:8001 -t 500 -- ./init_wiki.sh"
+    command: 'bash -c "./wait-for evolute-studio:8001 -t 500 -- ./init_wiki.sh && ./run_scripts.sh"
 
       '
     container_name: evolute-wiki
@@ -240,6 +243,7 @@ services:
       REDIS_PORT: 6379
       SUFFIX: SUFFIX
       WS_DOMAIN: WS_DOMAIN
+      LOCAL_VERSION: LOCAL_VERSION
     image: ncr-partner.nie.netease.com/evolute/evolute-wiki:latest
     networks:
     - evolute-network
