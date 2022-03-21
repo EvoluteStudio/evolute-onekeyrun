@@ -6,6 +6,10 @@ import os
 import os.path
 import shutil
 
+BACKUP_DB = False
+BACKUP_MEDIA = False
+BACKUP_ES = False
+
 parser = argparse.ArgumentParser(description='customize system args')
 parser.add_argument('--domain', '-d', help='set domain')
 parser.add_argument('--login', '-l', help='set login')
@@ -111,7 +115,7 @@ def set_cw(cw):
         old_settings.update({'CELERY_WORKER':cw})
         json.dump(old_settings, new_settings)
 
-def replace_params():
+def replace_params(image_tag):
     local_version = '20200202'
     if os.path.exists('.version'):
         with open('.version', 'r') as f:
@@ -138,6 +142,18 @@ def replace_params():
         print(yml_settings)
 
     with open(yml_path, 'w', encoding='utf-8') as yml_settings_content:
+        # 替换镜像tag
+        yml_settings['services']['evolute']['image'] = 'ncr-partner.nie.netease.com/evolute/evolute-deploy:' + image_tag
+        yml_settings['services']['evolute-studio']['image'] = 'ncr-partner.nie.netease.com/evolute/evolute-studio:' + image_tag
+        yml_settings['services']['celery-board']['image'] = 'ncr-partner.nie.netease.com/evolute/evolute-board:' + image_tag
+        yml_settings['services']['evolute-board']['image'] = 'ncr-partner.nie.netease.com/evolute/evolute-board:' + image_tag
+        yml_settings['services']['celery-board-beat']['image'] = 'ncr-partner.nie.netease.com/evolute/evolute-board:' + image_tag
+        yml_settings['services']['evolute-wiki']['image'] = 'ncr-partner.nie.netease.com/evolute/evolute-wiki:' + image_tag
+        yml_settings['services']['evolute-wiki-ws']['image'] = 'ncr-partner.nie.netease.com/evolute/evolute-wiki:' + image_tag
+        yml_settings['services']['celery-wiki-beat']['image'] = 'ncr-partner.nie.netease.com/evolute/evolute-wiki:' + image_tag
+        yml_settings['services']['celery-wiki']['image'] = 'ncr-partner.nie.netease.com/evolute/evolute-wiki:' + image_tag
+
+
         # 修改对应域名和端口
         yml_settings['services']['celery-board']['environment']['SUFFIX'] = settings['EVOLUTE_EVERTEST_DOMAIN']
         yml_settings['services']['evolute-board']['environment']['LOCAL_VERSION'] = local_version
@@ -226,7 +242,49 @@ def restart_system(update=False):
             pass
         else:
             flag = False
-    print('服务已启动...')
+
+def backup_data(version):
+    # 备份数据库
+    if BACKUP_DB:
+        if os.path.exists('./docker/mysql-base'):
+            shutil.rmtree('./docker/mysql-base')
+        if os.path.exists('./docker/mysql'):
+            shutil.copy('./docker/mysql', f'./docker/mysql-base')
+    # 备份文件
+    if BACKUP_MEDIA:
+        if os.path.exists('./docker/evolute-studio-base'):
+            shutil.rmtree('./docker/evolute-studio-base')
+        if os.path.exists('./docker/evolute-studio'):
+            shutil.copy('./docker/evolute-studio', f'./docker/evolute-studio-base')
+    if BACKUP_ES:
+        res = os.popen("docker exec -it evolute-wiki /bin/bash -c 'curl -XGET  evolute_es01:9200/_snapshot/evolute_backup'")
+        backup_json = '{"type": "fs","settings": {"location": "/usr/share/elasticsearch/backup"}}'
+        backup_cmd = f"curl -H 'Content-Type: application/json' -s -XPUT  evolute_es01:9200/_snapshot/evolute_backup -d {backup_json}"
+        os.system(f"docker exec -it evolute-wiki /bin/bash -c {backup_cmd}")
+        os.system(f"docker exec -it evolute-wiki /bin/bash -c 'curl -XPUT evolute_es01:9200/_snapshot/evolute_backup/snapshot_{version}?wait_for_completion=true'")
+    if os.path.exists('./docker-compose.yml.backup'):
+        os.remove('./docker-compose.yml.backup')
+        shutil.copy('./docker-compose.yml', './docker-compose.yml.backup')
+    return True
+    # 备份es
+
+def restore_data(version):
+    # 恢复数据库
+    if os.path.exists('./docker-compose.yml.backup'):
+        os.remove('./docker-compose.yml')
+        os.rename('./docker-compose.yml.backup', './docker-compose.yml')
+    if BACKUP_DB:
+        if os.path.exists(f'./docker/mysql-base'):
+            shutil.rmtree('./docker/mysql')
+            os.rename(f'./docker/mysql-base', f'./docker/mysql')
+    # 恢复media文件
+    if BACKUP_MEDIA:
+        if os.path.exists(f'./docker/evolute-studio-base'):
+            shutil.rmtree('./docker/evolute-studio')
+            os.rename(f'./docker/evolute-studio-base', f'./docker/evolute-studio')
+    # 恢复es数据
+    if BACKUP_ES:
+        os.system(f"docker exec -it evolute-wiki /bin/bash -c 'curl -XPOST evolute_es01:9200/_snapshot/evolute_backup/snapshot_{version}/_restore?wait_for_completion=true'")
 
 def check_system():
     install_check = False
@@ -242,16 +300,23 @@ def run_install_scripts():
 
 
 def run_update_scripts():
-    print('start running scripts...')
-    print("docker exec -it evolute /bin/bash -c './run_scripts.sh'")
-    os.system("docker exec -it evolute /bin/bash -c './run_scripts.sh'")
-    print("docker exec -it evolute-studio /bin/bash -c './run_scripts.sh'")
-    os.system("docker exec -it evolute-studio /bin/bash -c './run_scripts.sh'")
-    print("docker exec -it evolute-board /bin/bash -c './run_scripts.sh'")
-    os.system("docker exec -it evolute-board /bin/bash -c './run_scripts.sh'")
-    print("docker exec -it evolute-wiki /bin/bash -c './run_scripts.sh'")
-    os.system("docker exec -it evolute-wiki /bin/bash -c './run_scripts.sh'")
-    print('scripts finished...')
+    result = os.system("docker exec -it evolute /bin/bash -c './run_scripts.sh'")
+    if result != 0:
+        print('脚本执行失败，可以在./docker/evertest/volume/logs/run_scripts.log中查看详情')
+        return False
+    result = os.system("docker exec -it evolute-studio /bin/bash -c './run_scripts.sh'")
+    if result != 0:
+        print('脚本执行失败，可以在./docker/studio/volume/logs/run_scripts.log中查看详情')
+        return False
+    result = os.system("docker exec -it evolute-board /bin/bash -c './run_scripts.sh'")
+    if result != 0:
+        print('脚本执行失败，可以在./docker/qaboard/volume/logs/run_scripts.log中查看详情')
+        return False
+    result = os.system("docker exec -it evolute-wiki /bin/bash -c './run_scripts.sh'")
+    if result != 0:
+        print('脚本执行失败，可以在./docker/qawiki/volume/logs/run_scripts.log中查看详情')
+        return False
+    return True
 
 
 
@@ -298,7 +363,6 @@ if __name__ == '__main__':
         set_bp(args.board_port)
     if args.websocket_domain:
         set_wd(args.websocket_domain)
-
     if args.websocket_port:
         set_op(args.websocket_port)
     if args.gunicorn_worker:

@@ -20,7 +20,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SUFFIX: SUFFIX
-    image: ncr-partner.nie.netease.com/evolute/evolute-board:latest
+    image: ncr-partner.nie.netease.com/evolute/evolute-board:IMAGE_TAG
     networks:
     - evolute-network
     volumes:
@@ -44,7 +44,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SUFFIX: SUFFIX
-    image: ncr-partner.nie.netease.com/evolute/evolute-board:latest
+    image: ncr-partner.nie.netease.com/evolute/evolute-board:IMAGE_TAG
     networks:
     - evolute-network
     volumes:
@@ -68,7 +68,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SUFFIX: SUFFIX
-    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:latest
+    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:IMAGE_TAG
     networks:
     - evolute-network
     volumes:
@@ -89,7 +89,7 @@ services:
       MYSQL_USER: mysql
       REDIS_HOST: redis
       REDIS_PORT: 6379
-    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:latest
+    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:IMAGE_TAG
     networks:
     - evolute-network
     volumes:
@@ -142,10 +142,11 @@ services:
     volumes:
     - data01:/usr/share/elasticsearch/data
     - ./jvm.options.d:/usr/share/elasticsearch/config/jvm.options.d
+    - ./docker/elasticsearch/backup:/usr/share/elasticsearch/backup
   evolute:
     container_name: evolute
     command: 'bash -c "./wait-for db:3306 -t 500 -- python manage.py migrate --database managements
-      && python manage.py migrate && python manage.py runserver 0:8000 && ./run_scripts.sh"
+      && python manage.py migrate && python manage.py runserver 0:8000"
 
       '
     depends_on:
@@ -161,8 +162,7 @@ services:
       LOGIN_URL: LOGIN_URL
       SUFFIX: SUFFIX
       WS_DOMAIN: WS_DOMAIN
-      LOCAL_VERSION: LOCAL_VERSION
-    image: ncr-partner.nie.netease.com/evolute/evolute-deploy:latest
+    image: ncr-partner.nie.netease.com/evolute/evolute-deploy:IMAGE_TAG
     networks:
     - evolute-network
     volumes:
@@ -170,7 +170,7 @@ services:
     ports:
     - 14395:8000
   evolute-board:
-    command: 'bash -c "./wait-for evolute-studio:8001 -t 500 -- ./init_board.sh && ./run_scripts.sh"
+    command: 'bash -c "./wait-for evolute-studio:8001 -t 500 -- ./init_board.sh"
 
       '
     container_name: evolute-board
@@ -187,8 +187,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SUFFIX: SUFFIX
-      LOCAL_VERSION: LOCAL_VERSION
-    image: ncr-partner.nie.netease.com/evolute/evolute-board:latest
+    image: ncr-partner.nie.netease.com/evolute/evolute-board:IMAGE_TAG
     networks:
     - evolute-network
     ports:
@@ -198,7 +197,7 @@ services:
     - ./docker/qaboard/volume/logs:/usr/share/qaboard/logs
     - ./docker/evolute-studio/volume/media:/usr/share/qaboard/media
   evolute-studio:
-    command: 'bash -c "./wait-for evolute:8000 -t 500 -- ./init_studio.sh && ./run_scripts.sh"
+    command: 'bash -c "./wait-for evolute:8000 -t 500 -- ./init_studio.sh"
 
       '
     container_name: evolute-studio
@@ -214,8 +213,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       SUFFIX: SUFFIX
-      LOCAL_VERSION: LOCAL_VERSION
-    image: ncr-partner.nie.netease.com/evolute/evolute-studio:latest
+    image: ncr-partner.nie.netease.com/evolute/evolute-studio:IMAGE_TAG
     networks:
     - evolute-network
     ports:
@@ -225,7 +223,7 @@ services:
     - ./docker/studio/volume/logs:/usr/share/qastudio/logs
     - ./docker/evolute-studio/volume/media:/usr/share/qastudio/media
   evolute-wiki:
-    command: 'bash -c "./wait-for evolute-studio:8001 -t 500 -- ./init_wiki.sh && ./run_scripts.sh"
+    command: 'bash -c "./wait-for evolute-studio:8001 -t 500 -- ./init_wiki.sh"
 
       '
     container_name: evolute-wiki
@@ -243,8 +241,7 @@ services:
       REDIS_PORT: 6379
       SUFFIX: SUFFIX
       WS_DOMAIN: WS_DOMAIN
-      LOCAL_VERSION: LOCAL_VERSION
-    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:latest
+    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:IMAGE_TAG
     networks:
     - evolute-network
     ports:
@@ -271,7 +268,7 @@ services:
       REDIS_PORT: 6379
       SUFFIX: SUFFIX
       WS_DOMAIN: WS_DOMAIN
-    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:latest
+    image: ncr-partner.nie.netease.com/evolute/evolute-wiki:IMAGE_TAG
     networks:
     - evolute-network
     tty: true
