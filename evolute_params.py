@@ -365,7 +365,10 @@ def run_install_scripts():
 
 def remove_images(version=''):
     cmd = f"docker images|grep ncr-partner.nie.netease.com|grep {version}|" + "awk '{print $3}'|xargs docker rmi"
-    os.system(cmd)
+    try:
+        os.system(cmd)
+    except:
+        pass
 
 
 def run_update_scripts():
