@@ -363,10 +363,10 @@ def remove_images(version=''):
 
 
 def run_update_scripts():
-    result = os.system("docker exec -it evolute /bin/bash -c './run_scripts.sh'")
-    if result != 0:
-        print('脚本执行失败，可以在./docker/evertest/volume/logs/run_scripts.log中查看详情')
-        return False
+    # result = os.system("docker exec -it evolute /bin/bash -c './run_scripts.sh'")
+    # if result != 0:
+    #     print('脚本执行失败，可以在./docker/evertest/volume/logs/run_scripts.log中查看详情')
+    #     return False
     result = os.system("docker exec -it evolute-studio /bin/bash -c './run_scripts.sh'")
     if result != 0:
         print('脚本执行失败，可以在./docker/studio/volume/logs/run_scripts.log中查看详情')
