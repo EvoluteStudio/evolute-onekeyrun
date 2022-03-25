@@ -227,6 +227,7 @@ def replace_params(image_tag):
         nginx_settings = nginx_settings.replace('EVOLUTE_STUDIO_PORT', str(settings['EVOLUTE_STUDIO_PORT']))
         nginx_settings = nginx_settings.replace('EVOLUTE_DOMAIN', str(settings['EVOLUTE_EVERTEST_DOMAIN']))
         nginx_settings = nginx_settings.replace('EVOLUTE_WEBSOCKET_PORT', str(settings['EVOLUTE_WEBSOCKET_PORT']))
+        nginx_settings = nginx_settings.replace('EVOLUTE_WEBSOCKET_DOMAIN', str(settings['EVOLUTE_WEBSOCKET_DOMAIN']))
         nginx_content.write(nginx_settings)
     return True
 
