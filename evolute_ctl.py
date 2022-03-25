@@ -6,7 +6,7 @@ import os.path
 import shutil
 import evolute_params
 parser = argparse.ArgumentParser(description='customize system args')
-parser.add_argument('--run', '-r', help='run system', const=True, nargs='?')
+parser.add_argument('--install', '-r', help='install system', const=True, nargs='?')
 parser.add_argument('--update', '-u', help='update system', const=True, nargs='?')
 parser.add_argument('--restart', '-rs', help='restart system', const=True, nargs='?')
 parser.add_argument('--kill', '-k', help='kill system', const=True, nargs='?')
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     # 先检查是否有配置好的文件
     install_check = evolute_params.check_system()
     args = parser.parse_args()
-    if args.run:
+    if args.install:
         if not install_check:
             local_version, new_version = github_download()
             importlib.reload(evolute_params)
