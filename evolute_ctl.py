@@ -59,9 +59,13 @@ def github_download():
             if '.git' in dir:
                 continue
             print(f'update: {dir}')
+            if os.path.exists(os.path.join(cwd, dir)):
+                shutil.rmtree(os.path.join(cwd, dir))
             shutil.move(os.path.join(cwd, root, dir), os.path.join(cwd, dir))
     if os.path.exists(f'{new_version}.tar.gz'):
         os.remove(f'{new_version}.tar.gz')
+    if os.path.exists(new_version_dir):
+        shutil.rmtree(new_version_dir)
     return local_version, new_version
 
 if __name__ == '__main__':

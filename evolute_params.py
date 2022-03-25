@@ -164,20 +164,24 @@ def replace_params(image_tag):
         yml_settings['services']['celery-wiki'][
             'image'] = 'ncr-partner.nie.netease.com/evolute/evolute-wiki:' + image_tag
 
+        # 替换version
+        yml_settings['services']['evolute-board']['environment']['LOCAL_VERSION'] = local_version
+        yml_settings['services']['evolute-wiki']['environment']['LOCAL_VERSION'] = local_version
+        yml_settings['services']['evolute']['environment']['LOCAL_VERSION'] = local_version
+        yml_settings['services']['evolute-studio']['environment']['LOCAL_VERSION'] = local_version
+
+
         # 修改对应域名和端口
         yml_settings['services']['celery-board']['environment']['SUFFIX'] = settings['EVOLUTE_EVERTEST_DOMAIN']
-        yml_settings['services']['evolute-board']['environment']['LOCAL_VERSION'] = local_version
         yml_settings['services']['celery-board-beat']['environment']['SUFFIX'] = settings['EVOLUTE_EVERTEST_DOMAIN']
         yml_settings['services']['celery-wiki']['environment']['SUFFIX'] = settings['EVOLUTE_EVERTEST_DOMAIN']
-        yml_settings['services']['evolute-wiki']['environment']['LOCAL_VERSION'] = local_version
-        yml_settings['services']['evolute-wiki']['environment']['WS_DOMAIN'] = settings['EVOLUTE_EVERTEST_DOMAIN']
-        yml_settings['services']['evolute-wiki-ws']['environment']['WS_DOMAIN'] = settings['EVOLUTE_EVERTEST_DOMAIN']
+        yml_settings['services']['evolute-wiki']['environment']['WS_DOMAIN'] = settings['EVOLUTE_WEBSOCKET_DOMAIN']
+        yml_settings['services']['evolute-wiki-ws']['environment']['WS_DOMAIN'] = settings['EVOLUTE_WEBSOCKET_DOMAIN']
+        yml_settings['services']['evolute']['environment']['WS_DOMAIN'] = settings['EVOLUTE_WEBSOCKET_DOMAIN']
         # yml_settings['services']['celery-wiki-beat']['environment']['SUFFIX'] = settings['EVOLUTE_EVERTEST_DOMAIN']
         yml_settings['services']['evolute']['environment']['SUFFIX'] = settings['EVOLUTE_EVERTEST_DOMAIN']
-        yml_settings['services']['evolute']['environment']['LOCAL_VERSION'] = local_version
         yml_settings['services']['evolute-board']['environment']['SUFFIX'] = settings['EVOLUTE_EVERTEST_DOMAIN']
         yml_settings['services']['evolute-studio']['environment']['SUFFIX'] = settings['EVOLUTE_EVERTEST_DOMAIN']
-        yml_settings['services']['evolute-studio']['environment']['LOCAL_VERSION'] = local_version
         yml_settings['services']['evolute-wiki']['environment']['SUFFIX'] = settings['EVOLUTE_EVERTEST_DOMAIN']
         yml_settings['services']['evolute-wiki-ws']['environment']['SUFFIX'] = settings['EVOLUTE_EVERTEST_DOMAIN']
         # yml_settings['services']['db']['environment']['DOMAIN'] = settings['EVOLUTE_EVERTEST_DOMAIN']
@@ -188,7 +192,7 @@ def replace_params(image_tag):
         yml_settings['services']['evolute-wiki-ws']['ports'] = [f'{settings["EVOLUTE_WEBSOCKET_PORT"]}:8000']
 
         # 修改两个celery的worker数
-        worker_amount = settings['CELERY_WORKER']
+        worker_amount = settings.get('CELERY_WORKER', 3)
         board_command = yml_settings['services']['celery-board']['command'].split('info')[
                             0] + f'info --concurrency={worker_amount}"'
         yml_settings['services']['celery-board']['command'] = board_command
@@ -198,7 +202,7 @@ def replace_params(image_tag):
         yml_settings['services']['celery-wiki']['command'] = wiki_command
 
         # 修改gunicorn的worker数量
-        gunicorn_worker = settings['GUNICORN_WORKER']
+        gunicorn_worker = settings.get('GUNICORN_WORKER', 3)
         yml_settings['services']['evolute-board']['environment']['SERVER_WORKER'] = gunicorn_worker
         yml_settings['services']['evolute-wiki']['environment']['SERVER_WORKER'] = gunicorn_worker
 
@@ -206,7 +210,7 @@ def replace_params(image_tag):
             # replace_tag
             replace_tag = 'need_replace_evolute_login_url'
             login_url = f'http://{settings["EVOLUTE_EVERTEST_DOMAIN"]}/auth/login_complete/'
-            LOGIN_URL = settings["EVOLUTE_LOGIN_URL"]
+            LOGIN_URL = settings["EVOLUTE_LOGIN_URL"].replace('need_replace_evolute_login_url', login_url)
             yml_settings['services']['evolute']['environment']['LOGIN_URL'] = LOGIN_URL
         except:
             print('set login_url error')
@@ -227,14 +231,16 @@ def replace_params(image_tag):
     return True
 
 
-def restart_system(update=False):
-    if update:
-        print('start to update docker images ...')
-        os.system('docker-compose pull')
+def restart_system(local_version='', update=False):
     try:
         os.system(f'docker-compose -f {yml_path} down')
     except Exception as e:
         pass
+    if local_version:
+        remove_images(local_version)
+    if update:
+        print('start to update docker images ...')
+        os.system('docker-compose pull')
     if os.path.exists(success_path):
         os.remove(success_path)
     os.system(f'docker-compose -f {yml_path} up -d --build')
@@ -411,18 +417,17 @@ def update_system(local_version, new_version):
     status = replace_sample(new_version)
     if not status:
         return
-    restart_system(True)
+    restart_system(local_version, update=True)
     result = run_update_scripts()
     install_check = check_system()
     if not result or not install_check:
         restore_data(local_version)
-        restart_system()
+        restart_system(local_version)
         print('启动完成~')
     else:
         with open('.version', 'w') as f:
             f.write(new_version)
         print('更新完成~')
-        remove_images(local_version)
     # if install_check:
     #     local_version, new_version = github_download()
     #
@@ -447,7 +452,7 @@ def run_system(local_version, new_version):
     status = replace_sample(new_version)
     if not status:
         return
-    restart_system(False)
+    restart_system()
     with open('.version', 'w') as f:
         f.write(new_version)
     print('启动成功~')
