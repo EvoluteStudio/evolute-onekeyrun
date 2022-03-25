@@ -26,7 +26,7 @@ def github_download():
         if value:
             new_version = value.strip()
     if not new_version:
-        print(f'未获取到版本内容，请前往{github_base}/releases/，下载压缩包尝试手动安装>(⊙﹏⊙)<')
+        print(f'未获取到版本内容，请前往{github_base}/releases/ 查看版本信息>(⊙﹏⊙)<')
         print('Bye~')
         return False, False
     if os.path.exists('./.version'):

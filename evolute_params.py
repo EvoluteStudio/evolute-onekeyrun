@@ -229,23 +229,15 @@ def replace_params(image_tag):
 
 def restart_system(update=False):
     if update:
-        try:
-            # os.system(f'docker-compose -f {yml_path} down')
-            print('docker rm ...')
-            os.system(
-                f'docker rm -f evolute evolute-board evolute-studio evolute-wiki evolute-wiki-ws wiki_celery board_celery board_celery_beat')
-            os.remove(success_path)
-        except Exception as e:
-            pass
         print('start to update docker images ...')
         os.system('docker-compose pull')
+    try:
+        os.system(f'docker-compose -f {yml_path} down')
+    except Exception as e:
+        pass
+    if os.path.exists(success_path):
+        os.remove(success_path)
     os.system(f'docker-compose -f {yml_path} up -d --build')
-    # res = os.popen('docker-compose ps')
-    # for line in res.readlines():
-    #     print(line)
-    # if 'evolute' in line or 'board' in line or 'wiki' in line:
-    #     print(line)
-
     flag = True
     print('服务启动中，请稍等 ...')
     while flag:
@@ -258,18 +250,33 @@ def restart_system(update=False):
 def backup_data(version):
     # 备份数据库
     if BACKUP_DB:
-        if os.path.exists('./docker/mysql-base'):
-            shutil.rmtree('./docker/mysql-base')
-        if os.path.exists('./docker/mysql'):
-            shutil.copytree('./docker/mysql', f'./docker/mysql-base')
+        try:
+            if os.path.exists('./docker/mysql-base'):
+                shutil.rmtree('./docker/mysql-base')
+            if os.path.exists('./docker/mysql'):
+                shutil.copytree('./docker/mysql', f'./docker/mysql-base')
+        except Exception as e:
+            print(e)
+            print('数据备份异常：mysql')
+            return False
     # 备份文件
     if BACKUP_MEDIA:
-        if os.path.exists('./docker/evolute-studio-base'):
-            shutil.rmtree('./docker/evolute-studio-base')
-        if os.path.exists('./docker/evolute-studio'):
-            shutil.copytree('./docker/evolute-studio', f'./docker/evolute-studio-base')
+        try:
+            if os.path.exists('./docker/evolute-studio-base'):
+                shutil.rmtree('./docker/evolute-studio-base')
+            if os.path.exists('./docker/evolute-studio'):
+                shutil.copytree('./docker/evolute-studio', f'./docker/evolute-studio-base')
+        except Exception as e:
+            print(e)
+            print('数据备份失败：本地资源文件')
+            return False
     if BACKUP_ES:
         os.system("docker exec -it evolute-wiki /bin/bash -c './backup_es.sh'")
+        res = os.popen("curl -XGET localhost:9203/_snapshot/evolute_backup/snapshot_{version}")
+        for line in res.readlines():
+            if '"state":"SUCCESS"' not in line:
+                print('elasticsearch备份失败')
+                return False
         # res = os.popen(
         #     "docker exec -it evolute-wiki /bin/bash -c 'curl -XGET  evolute_es01:9200/_snapshot/evolute_backup'")
         # backup_json = '{"type": "fs","settings": {"location": "/usr/share/elasticsearch/backup"}}'
@@ -279,10 +286,14 @@ def backup_data(version):
         #     f"docker exec -it evolute-wiki /bin/bash -c 'curl -XPUT evolute_es01:9200/_snapshot/evolute_backup/snapshot_{version}?wait_for_completion=true'")
     if os.path.exists('./docker-compose.yml.backup'):
         os.remove('./docker-compose.yml.backup')
-    shutil.copy('./docker-compose.yml', './docker-compose.yml.backup')
+    try:
+        shutil.copy('./docker-compose.yml', './docker-compose.yml.backup')
+    except Exception as e:
+        print(e)
+        print('数据备份失败：docker-compose')
+        return False
     print('备份完成')
     return True
-    # 备份es
 
 
 def restore_data(version):
@@ -292,22 +303,44 @@ def restore_data(version):
         os.system('docker-compose down')
         if os.path.exists('./docker-compose.yml'):
             os.remove('./docker-compose.yml')
-        os.rename('docker-compose.yml.backup', 'docker-compose.yml')
+        shutil.copy('docker-compose.yml.backup', 'docker-compose.yml')
     else:
         print('无法回退至上一个版本')
     if BACKUP_DB:
         if os.path.exists(f'./docker/mysql-base'):
             shutil.rmtree('./docker/mysql')
             os.rename(f'./docker/mysql-base', f'./docker/mysql')
+        else:
+            print('没有找到备份内容：数据库')
     # 恢复media文件
     if BACKUP_MEDIA:
         if os.path.exists(f'./docker/evolute-studio-base'):
             shutil.rmtree('./docker/evolute-studio')
             os.rename(f'./docker/evolute-studio-base', f'./docker/evolute-studio')
+        else:
+            print('没有找到备份内容：本地资源文件')
     # 恢复es数据
     if BACKUP_ES and version:
-        os.system(
+        # 先看下是否已经成功备份
+        res = os.popen("curl -XGET localhost:9203/_snapshot/evolute_backup/snapshot_{version}")
+        for line in res.readlines():
+            if '"state":"SUCCESS"' not in line:
+                print('elasticsearch备份失败, 无法回退数据...')
+                return
+        # es备份成功
+        # 先删除索引，再restore
+        os.system("docker exec -it evolute-wiki /bin/bash -c 'curl -XDELETE evolute_es01:9200/_all'")
+        res2 = os.popen(
             f"docker exec -it evolute-wiki /bin/bash -c 'curl -XPOST evolute_es01:9200/_snapshot/evolute_backup/snapshot_{version}/_restore?wait_for_completion=true'")
+        for line in res2.readlines():
+            line = json.loads(line)
+            if line.get('snapshot'):
+                if line['snapshot']['shards']['failed'] == 0:
+                    print('elasticsearch 恢复备份成功...')
+                else:
+                    print('elasticsearch 恢复备份异常...')
+            else:
+                print('elasticsearch 恢复备份异常...')
 
 
 def check_system():
@@ -384,6 +417,7 @@ def update_system(local_version, new_version):
     if not result or not install_check:
         restore_data(local_version)
         restart_system()
+        print('启动完成~')
     else:
         with open('.version', 'w') as f:
             f.write(new_version)

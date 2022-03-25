@@ -142,7 +142,6 @@ services:
     volumes:
     - data01:/usr/share/elasticsearch/data
     - ./jvm.options.d:/usr/share/elasticsearch/config/jvm.options.d
-    - ./docker/elasticsearch/backup:/usr/share/elasticsearch/backup
   evolute:
     container_name: evolute
     command: 'bash -c "./wait-for db:3306 -t 500 -- python manage.py migrate --database managements
