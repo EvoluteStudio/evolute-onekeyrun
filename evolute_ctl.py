@@ -37,9 +37,9 @@ def github_download():
     print('开始更新...')
     # 下载压缩包、替换模板文件、重启
     DOWNLOAD_URL = f"wget --no-check-certificate {github_base}/archive/refs/tags/" + new_version + ".tar.gz"
-    if not os.path.exists(f'{new_version}.tar.gz') or not os.path.exists(f'{new_version}.zip'):
+    if not os.path.exists(f'{new_version}.tar.gz') and not os.path.exists(f'{new_version}.zip'):
         os.system(DOWNLOAD_URL)
-    if not os.path.exists(f'{new_version}.tar.gz') or not os.path.exists(f'{new_version}.zip'):
+    if not os.path.exists(f'{new_version}.tar.gz') and not os.path.exists(f'{new_version}.zip'):
         print(f'下载更新包失败>(⊙﹏⊙)<，可以尝试手动下载tar.gz压缩包后安装更新: {DOWNLOAD_URL}')
         return False, False
     if os.path.exists(f'{new_version}.tar.gz'):
