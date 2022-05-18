@@ -82,6 +82,7 @@ python evolute_ctl.py --install
 ```
 
 **在线更新**
+
  python evolute_ctl.py --update或
  python evolute_ctl.py -u
  注：如遇更新失败，系统会自动回退至更新前版本，
@@ -94,10 +95,12 @@ python evolute_ctl.py --install
  python evolute_ctl.py --run #安装服务
   
 **离线更新**
+
  如果在线更新获取安装包失败，可前往https://github.com/EvoluteStudio/evolute-onekeyrun/releases/下载tar.gz压缩包进行离线更新
  下载后放于onekeyrun目录下，执行python evolute_ctl.py --update进行离线更新
   
 **log&debug**
+
  如何查看log?
  1、查看docker-compose启动时的log
  docker-compose logs
@@ -114,6 +117,7 @@ wiki: ./docker/qawiki/volume/logs/
  nginx默认log位置为/var/log/nginx/
   
 **系统超时**
+
  1、F12打开浏览器控制台，查看network-->all，找出超时请求地址
  
  （1）前端资源请求超时，比如.js，.png文件请求超时
@@ -136,6 +140,7 @@ wiki: ./docker/qawiki/volume/logs/
  python evolute_ctl.py --restart
   
  **无法进入协同编辑**
+ 
  系统启动后无法进行系统编辑？
  （1）首先确认服务容器是否都已成功启动
  docker-compose ps
