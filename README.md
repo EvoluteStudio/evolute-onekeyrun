@@ -65,7 +65,7 @@ python evolute_params.py -d $DOMAIN -wd $WEBSOCKET_DOMAIN -ep $EVOLUTE_PORT -sp 
 ```
 **启动服务**
 ```
-python evolute_ctl.py --run 
+python evolute_ctl.py --install 
 # 启动完成后，可执行docker-compose ps查看容器是否在正常运行
 ```
 **启动Nginx配置**
@@ -76,12 +76,89 @@ python evolute_ctl.py --run
 直接输入http://$DOMAIN， 即可访问
 
 
-**如何更新**
-```
-#执行启动命令，即可拉取最新镜像进行更新
-python evolute_ctl.py --run
-```
 **数据挂载位置**
 ```
 容器内数据默认挂载路径在./docker
 ```
+
+**在线更新**
+ python evolute_ctl.py --update或
+ python evolute_ctl.py -u
+ 注：如遇更新失败，系统会自动回退至更新前版本，
+ 也可执行“python evolute_ctl.py --rollback”手动回退
+ 其他系统命令
+ python evolute_ctl.py --help
+ python evolute_ctl.py --status #查看服务状态
+ python evolute_ctl.py --restart #重启服务
+ python evolute_ctl.py --kill #停止服务
+ python evolute_ctl.py --run #安装服务
+  
+**离线更新**
+ 如果在线更新获取安装包失败，可前往https://github.com/EvoluteStudio/evolute-onekeyrun/releases/下载tar.gz压缩包进行离线更新
+ 下载后放于onekeyrun目录下，执行python evolute_ctl.py --update进行离线更新
+  
+**log&debug**
+ 如何查看log?
+ 1、查看docker-compose启动时的log
+ docker-compose logs
+ 2、查看某个容器的log
+ docker logs {container-name}
+ 3、log文件
+ 服务log默认挂载目录为./docker/
+ 四个服务对应的log文件：
+evolute: ./docker/evertest/volume/logs/
+studio: ./docker/studio/volume/logs/
+board: ./docker/qaboardvolume/logs/
+wiki: ./docker/qawiki/volume/logs/
+ 4、nginx log
+ nginx默认log位置为/var/log/nginx/
+  
+**系统超时**
+ 1、F12打开浏览器控制台，查看network-->all，找出超时请求地址
+ 
+ （1）前端资源请求超时，比如.js，.png文件请求超时
+ 检查服务器是否能连接外网，比如ping evolute.netease.com
+ （2）后端接口请求超时
+ 如果超时的请求不是png、js、html等前端静态资源文件，则请查看服务对应的log中是否有trackback
+  
+**Elasticsearch异常退出**
+ 启动后如发现elasticsearch Exited，首先查看log
+ docker logs evolute_es01或者docker-compose logs
+ 确认是否有evolute_es01相关的报错；
+ 例如：
+ 
+ 解决方法：从报错信息vm.max_map_count看出内存太小了，所以需要修改vm.max_map_count的内存大小 （1）切换到root账户：su root
+ （2）修改sysctl.conf文件， vim /etc/sysctl.conf ：
+  
+ （3）输入命令：sysctl -p
+  
+ （4）重新启动即可
+ python evolute_ctl.py --restart
+  
+ **无法进入协同编辑**
+ 系统启动后无法进行系统编辑？
+ （1）首先确认服务容器是否都已成功启动
+ docker-compose ps
+ （2）查看log，是否有异常报错
+ docker logs evolute-wiki-ws
+ docker logs evolute-wiki
+ （3）浏览器查看
+ （4）在容器内测试连接
+ 为排除nginx配置的干扰，可执行步骤（4）（5）进行检查
+ {HOST}:团队域名，比如"team1.evolute.netease.com"
+ {COOKIE}: 获取方式可参考步骤（6）
+ 执行docker exec -it evolute-wiki-ws /bin/bash进入容器，然后执行curl --include --no-buffer --header "Connection: Upgrade" --header "Upgrade: websocket" --header "Host:{HOST}" --header "Origin:http://{HOST}" --header "Sec-WebSocket-Key: PSf47py6tqeN8zMMIA3yyQ==" --header "Sec-WebSocket-Version: 13" --header "Cookie: jwt={COOKIE}" http://evolute-wiki-ws:8000/ws/file/1/
+ 如果可以连接成功，输出"你是xxx"连接信息，证明websocket服务正常启动；
+ （5）在宿主机测试连接
+ {HOST}:团队域名，比如"team1.evolute.netease.com"
+ {COOKIE}: 获取方式可参考步骤（6）
+ {PORT}: 自己配置的websocket端口
+ 执行curl --include --no-buffer --header "Connection: Upgrade" --header "Upgrade: websocket" --header "Host:{HOST}" --header "Origin:http://{HOST}" --header "Sec-WebSocket-Key: PSf47py6tqeN8zMMIA3yyQ==" --header "Sec-WebSocket-Version: 13" --header "Cookie: jwt={COOKIE}" http://127.0.0.1:{PORT}/ws/file/1/
+ 如果（4）（5）都可以连接成功，输出"你是xxx"连接信息，证明websocket服务正常启动，且容器网络正常，可进行下一步尝试；
+ （6）下载postman工具测试连接：
+ 官网下载地址：https://www.postman.com/
+  
+ 1. 进入编辑模式后按f12，重新刷新页面，切到ws标签页，获取ws的链接url
+ 2. 同时在该页面查看Cookie，复制Cookie内容
+ 3. 在postman创建新request，选择WebSocket Request，将步骤1获取的ws链接黏贴到地址栏，在headers中创建一条数据，key为Cookie，value为步骤2获取的Cookie内容，然后点击connect
+ 4、如果（5）、（6）都可以连接，这一步无法使用域名时无法连接，请检查evolute-nginx.conf中的域名配置，也有可能是域名存在某些限制，可咨询一下公司内部网络运维相关同学
