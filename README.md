@@ -119,6 +119,7 @@ wiki: ./docker/qawiki/volume/logs/
 **系统超时**
 
  1、F12打开浏览器控制台，查看network-->all，找出超时请求地址
+ ![image](https://user-images.githubusercontent.com/101565326/168969892-1f793808-ecbc-4b5f-9503-9b59d98deed6.png)
  
  （1）前端资源请求超时，比如.js，.png文件请求超时
  检查服务器是否能连接外网，比如ping evolute.netease.com
@@ -130,12 +131,15 @@ wiki: ./docker/qawiki/volume/logs/
  docker logs evolute_es01或者docker-compose logs
  确认是否有evolute_es01相关的报错；
  例如：
- 
+ ![image](https://user-images.githubusercontent.com/101565326/168969910-5b664074-b966-4420-81f3-59c5d3ff578c.png)
+
  解决方法：从报错信息vm.max_map_count看出内存太小了，所以需要修改vm.max_map_count的内存大小 （1）切换到root账户：su root
  （2）修改sysctl.conf文件， vim /etc/sysctl.conf ：
-  
+  ![image](https://user-images.githubusercontent.com/101565326/168969930-36aec0d5-ed67-45cc-aaa6-0ade6f17fe04.png)
+
  （3）输入命令：sysctl -p
-  
+  ![image](https://user-images.githubusercontent.com/101565326/168969946-610250ec-f2b2-45c7-a952-ca55b3fc48c8.png)
+
  （4）重新启动即可
  python evolute_ctl.py --restart
   
@@ -143,12 +147,16 @@ wiki: ./docker/qawiki/volume/logs/
  
  系统启动后无法进行系统编辑？
  （1）首先确认服务容器是否都已成功启动
+ 
  docker-compose ps
  （2）查看log，是否有异常报错
+ 
  docker logs evolute-wiki-ws
  docker logs evolute-wiki
  （3）浏览器查看
+ 
  （4）在容器内测试连接
+ 
  为排除nginx配置的干扰，可执行步骤（4）（5）进行检查
  {HOST}:团队域名，比如"team1.evolute.netease.com"
  {COOKIE}: 获取方式可参考步骤（6）
@@ -162,7 +170,8 @@ wiki: ./docker/qawiki/volume/logs/
  如果（4）（5）都可以连接成功，输出"你是xxx"连接信息，证明websocket服务正常启动，且容器网络正常，可进行下一步尝试；
  （6）下载postman工具测试连接：
  官网下载地址：https://www.postman.com/
-  
+  ![image](https://user-images.githubusercontent.com/101565326/168969976-b6c083e2-e6ba-4efe-bd70-d6a97bed92ac.png)
+
  1. 进入编辑模式后按f12，重新刷新页面，切到ws标签页，获取ws的链接url
  2. 同时在该页面查看Cookie，复制Cookie内容
  3. 在postman创建新request，选择WebSocket Request，将步骤1获取的ws链接黏贴到地址栏，在headers中创建一条数据，key为Cookie，value为步骤2获取的Cookie内容，然后点击connect
