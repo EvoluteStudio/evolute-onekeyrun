@@ -19,7 +19,7 @@ github_base = 'https://github.com/EvoluteStudio/evolute-onekeyrun'
 def github_download():
     local_version = '20200202'
     rets = os.popen(
-        f"curl {github_base}/releases/latest | grep -Eo '[0-9]+[0-9]+[0-9]+[0-9]+[0-9]+[0-9]+[0-9]+[0-9]+'")
+        f"curl -L {github_base}/releases/latest | grep -Eo '[0-9]+[0-9]+[0-9]+[0-9]+[0-9]+[0-9]+[0-9]+[0-9]+'")
     new_version = ''
     for value in rets.readlines():
         if value:
