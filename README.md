@@ -182,6 +182,7 @@ wiki: ./docker/qawiki/volume/logs/
  （2）查看log，是否有异常报错
  
  docker logs evolute-wiki-ws
+ 
  docker logs evolute-wiki
  
  （3）浏览器查看
