@@ -185,6 +185,8 @@ wiki: ./docker/qawiki/volume/logs/
  
  docker logs evolute-wiki
  
+ docker logs wiki_celery
+ 
  （3）浏览器查看
  
  F12打开控制台，查看域名和jwt是否正确
