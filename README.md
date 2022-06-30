@@ -225,4 +225,4 @@ wiki: ./docker/qawiki/volume/logs/
  
  3. 在postman创建新request，选择WebSocket Request，将步骤1获取的ws链接黏贴到地址栏，在headers中创建一条数据，key为Cookie，value为步骤2获取的Cookie内容，然后点击connect
  
- 4、如果（5）、（6）都可以连接，这一步无法使用域名时无法连接，请检查evolute-nginx.conf中的域名配置，也有可能是域名存在某些限制，可咨询一下公司内部网络运维相关同学
+ 4、如果（5）、（6）都可以连接，这一步无法使用域名时无法连接，请检查evolute-nginx.conf中的域名配置，也有可能是域名存在某些限制或者不支持websocket协议，可咨询一下公司内部网络运维相关同学
