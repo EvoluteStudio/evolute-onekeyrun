@@ -186,20 +186,31 @@ wiki: ./docker/qawiki/volume/logs/
  
  （3）浏览器查看
  
+ F12打开控制台，查看域名和jwt是否正确
+ ![image](https://user-images.githubusercontent.com/101565326/176679041-31d84c8b-b829-4eaa-a569-248acfac540a.png)
+
  （4）在容器内测试连接
  
- 为排除nginx配置的干扰，可执行步骤（4）（5）进行检查
+ 为排除nginx配置的干扰，可继续执行步骤（4）（5）进行检查
+ 
  {HOST}:团队域名，比如"team1.evolute.netease.com"
+ 
  {COOKIE}: 获取方式可参考步骤（6）
+ 
  执行docker exec -it evolute-wiki-ws /bin/bash进入容器，然后执行curl --include --no-buffer --header "Connection: Upgrade" --header "Upgrade: websocket" --header "Host:{HOST}" --header "Origin:http://{HOST}" --header "Sec-WebSocket-Key: PSf47py6tqeN8zMMIA3yyQ==" --header "Sec-WebSocket-Version: 13" --header "Cookie: jwt={COOKIE}" http://evolute-wiki-ws:8000/ws/file/1/
+ 
  如果可以连接成功，输出"你是xxx"连接信息，证明websocket服务正常启动；
  
  （5）在宿主机测试连接
  
  {HOST}:团队域名，比如"team1.evolute.netease.com"
+ 
  {COOKIE}: 获取方式可参考步骤（6）
+ 
  {PORT}: 自己配置的websocket端口
+ 
  执行curl --include --no-buffer --header "Connection: Upgrade" --header "Upgrade: websocket" --header "Host:{HOST}" --header "Origin:http://{HOST}" --header "Sec-WebSocket-Key: PSf47py6tqeN8zMMIA3yyQ==" --header "Sec-WebSocket-Version: 13" --header "Cookie: jwt={COOKIE}" http://127.0.0.1:{PORT}/ws/file/1/
+ 
  如果（4）（5）都可以连接成功，输出"你是xxx"连接信息，证明websocket服务正常启动，且容器网络正常，可进行下一步尝试；
  
  （6）下载postman工具测试连接：
@@ -208,6 +219,9 @@ wiki: ./docker/qawiki/volume/logs/
   ![image](https://user-images.githubusercontent.com/101565326/168969976-b6c083e2-e6ba-4efe-bd70-d6a97bed92ac.png)
 
  1. 进入编辑模式后按f12，重新刷新页面，切到ws标签页，获取ws的链接url
+ 
  2. 同时在该页面查看Cookie，复制Cookie内容
+ 
  3. 在postman创建新request，选择WebSocket Request，将步骤1获取的ws链接黏贴到地址栏，在headers中创建一条数据，key为Cookie，value为步骤2获取的Cookie内容，然后点击connect
+ 
  4、如果（5）、（6）都可以连接，这一步无法使用域名时无法连接，请检查evolute-nginx.conf中的域名配置，也有可能是域名存在某些限制，可咨询一下公司内部网络运维相关同学
